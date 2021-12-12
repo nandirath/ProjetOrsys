@@ -1,0 +1,5 @@
+{
+    "port": "/dev/ttyUSB0",
+    "board": "arduino:avr:circuitplay32u4cat",
+    "sketch": "ESP8266_RFID_Access/rfid_access_modulaire/rfid_access_modulaire.ino"
+}

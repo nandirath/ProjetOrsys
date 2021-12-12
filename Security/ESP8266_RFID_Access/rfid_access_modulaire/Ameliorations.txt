@@ -1,0 +1,7 @@
+Gestion de la porte: Lorsque l'on detecte avec le PIR on ferme la porte
+Télecommande pour gerer des volets (ou luminosité)
+Message d'entree
+
+System de detection incendie + STM32/Temps Réel
+PYCam
+Commande vocale.
