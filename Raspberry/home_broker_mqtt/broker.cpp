@@ -16,24 +16,30 @@
 #include <cctype>
 #include <thread>
 #include <chrono>
-#include <shared_mutex>
+#include <mutex>
+#include <vector>
 #include "LCD.h"
 #include "mqtt/async_client.h"
 
+using namespace std;
+
 const std::string SERVER_ADDRESS { "tcp://192.168.0.14:1883" };
 const std::string CLIENT_ID { "homebroker" };
-const std::string TOPIC {"personCount"};
-const int QOS=1;
+auto TOPICS = mqtt::string_collection::create({"personCount","accessControl" });
+const std::vector<int> QOS { 1, 1 };
+//const std::string TOPICS {"personCount","accessControl"};
+//const int QOS=1;
 char mqtt_message[2];
 int temp, lum;
 constexpr int O_LED = 15;
+
 
 void MQTT_communication();
 void SPI_communication();
 void LCD_printing();
 std::mutex globalMutex;
 
-using namespace std;
+
 
 int main(int argc, char *argv[]) {
 
@@ -94,19 +100,24 @@ void MQTT_communication(){
 // If there is no session present, then we need to subscribe, but if
 // there is a session, then the server remembers us and our subscriptions.
 		if (!rsp.is_session_present())
-			cli.subscribe(TOPIC, QOS)->wait();
+			cli.subscribe(TOPICS, QOS)->wait();
 		while (true) { // Loop to consume read messages
 			auto msg = cli.consume_message();
 			if (!msg)
 				break;
+			if(msg->get_topic()=="personCount"){
+				cout << msg->get_topic() << ": " << msg->to_string() << endl;
+							strcpy(mqtt_message,msg->to_string().c_str());
+							//lcd.setPosition(1,0);
+							//lcd<<"Personnes:"<<msg->to_string().c_str();
+			}
+			else if (msg->get_topic()=="accessControl"){
+				cout << "Alarme activée"<< endl;
+			}
 
-			cout << msg->get_topic() << ": " << msg->to_string() << endl;
-			strcpy(mqtt_message,msg->to_string().c_str());
-			//lcd.setPosition(1,0);
-			//lcd<<"Personnes:"<<msg->to_string().c_str();
 		}
 		if (cli.is_connected()) {
-			cli.unsubscribe(TOPIC)->wait();
+			cli.unsubscribe(TOPICS)->wait();
 			cli.stop_consuming();
 			cli.disconnect()->wait();
 		} else

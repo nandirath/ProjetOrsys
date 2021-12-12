@@ -108,14 +108,17 @@ void loop() {
         
          }
     else if (content!=valid) {
-     
-     alarm=true
-      char message[3];
+      char message[5];
+      alarm=true;
       sprintf(message,"true");
-     while(alarm==true){
-     
-      clientMQTT.publish("accessControl",message);
+      uint8_t count=0;
+      while(alarm==true){
+        count++;
+      Serial.println ("Alarm");
+      if (count%60==0)clientMQTT.publish("accessControl",message);
+      delay(1000);
       }
+      count=0;
       //melody(2);
         }
     else if (nb_personnes>=max_nb_personnes){
