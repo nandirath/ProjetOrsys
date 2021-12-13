@@ -14,6 +14,7 @@
 #include <string>
 #include <cstring>
 #include <cctype>
+#include <curl/curl.h>
 #include <thread>
 #include <chrono>
 #include <mutex>
@@ -32,12 +33,20 @@ const std::vector<int> QOS { 1, 1 };
 char mqtt_message[2];
 int temp, lum;
 constexpr int O_LED = 15;
-
+CURL *curl;
+std::string readBuffer;
+const char *urlTemplate = "https://maker.ifttt.com/trigger/haha/with/key/bPWhrpVdScGJo9_-JcSTaz";
 
 void MQTT_communication();
 void SPI_communication();
 void LCD_printing();
+
+void send_request();
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
+		void *userp);
 std::mutex globalMutex;
+
+
 
 
 
@@ -107,12 +116,14 @@ void MQTT_communication(){
 				break;
 			if(msg->get_topic()=="personCount"){
 				cout << msg->get_topic() << ": " << msg->to_string() << endl;
-							strcpy(mqtt_message,msg->to_string().c_str());
+				strcpy(mqtt_message,msg->to_string().c_str());
 							//lcd.setPosition(1,0);
 							//lcd<<"Personnes:"<<msg->to_string().c_str();
 			}
-			else if (msg->get_topic()=="accessControl"){
-				cout << "Alarme activée"<< endl;
+			else if (msg->get_topic()=="accessControl"&& msg->to_string()=="true" ){
+				//cout << "Alarme activée"<< endl;&& msg->to_string()=="true"
+				cout<< msg->to_string()<<endl;
+				send_request();
 			}
 
 		}
@@ -148,4 +159,29 @@ void LCD_printing(){
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 
+}
+
+
+
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
+		void *userp) {
+	((std::string*) userp)->append((char*) contents, size * nmemb);
+	return size * nmemb;
+}
+
+void send_request() {
+
+				curl = curl_easy_init();
+					if (curl) {
+						curl_easy_setopt(curl, CURLOPT_URL, urlTemplate);
+						curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+						curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+						curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+						curl_easy_perform(curl);
+						curl_easy_cleanup(curl);
+						std::cout << readBuffer << std::endl;
+
+
+	}
 }
