@@ -10,8 +10,7 @@
 
 // Variables
 #define NOTE_SUSTAIN 1000
-bool alarm=false;
-
+uint8_t alarm=0;
 WiFiClient wifiClient;
 PubSubClient clientMQTT(wifiClient);
 enum Sens {entree,sortie};
@@ -78,15 +77,13 @@ void setup()
 
 void loop() {
   clientMQTT.loop();
-  if(strcmp(rMessage,"false"))alarm=false;
-  
+  Serial.println (rMessage);
+  Serial.println (alarm);
+  //if(strcmp(rMessage,"false"))alarm=0;
    if (!clientMQTT.connected()) {
     Serial.println("Disconnected...");
     reconnect();
     }
-     //if(analogRead(out_push_button)==LOW){
-      //delay(10);
-      //if(analogRead(out_push_button)==LOW){
       if(enable_sortie){ 
         if(nb_personnes>0){
           opening_door(sortie);
@@ -100,11 +97,6 @@ void loop() {
           enable_sortie=0;
         
       }
-        
-         
-          /*}
-        }
-    }*/
     if ( ! mfrc522.PICC_IsNewCardPresent()) return;
     //Nvlle carte
     if ( ! mfrc522.PICC_ReadCardSerial()) return;
@@ -115,7 +107,7 @@ void loop() {
     tag_reading(content,mfrc522);
     delay(1000);
     if((content==valid) && (nb_personnes<max_nb_personnes)){
-      if(alarm==false){
+      if(!alarm){
         opening_door(entree);
         gestion_personne(entree);
         content="";
@@ -124,9 +116,10 @@ void loop() {
         }
          }
     else if (content!=valid) {
-      alarm=true;
+      alarm=1;
       char* sMessage = "true";
       Serial.println ("Alarm");
+      Serial.println (alarm);
       clientMQTT.publish("accessControl",sMessage);
       delay(1000);
       melody(2);
