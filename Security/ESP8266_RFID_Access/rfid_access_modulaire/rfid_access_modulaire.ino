@@ -19,14 +19,14 @@ enum Sens {entree,sortie};
 const unsigned char SS_PIN=D8;
 const unsigned char RST_PIN=D0;
 const unsigned char buzzer =D4;
-const unsigned char out_push_button = D2;
-const unsigned char pin_servo =D1; 
+const unsigned char out_push_button = D1;
+const unsigned char pin_servo =D2; 
 uint8_t nb_personnes=0, max_nb_personnes=4;//Decompte nombre de personnes dans la maison
 int door_position=0;
 volatile uint8_t enable_sortie=0;
-char rMessage[30];
+char rMessage[10];
 
-
+int count=0;
 Sens sens;
 
 Servo porte;
@@ -46,7 +46,7 @@ void melody(uint8_t mel);
 //Faire une fonction pour la lecture de l'EEPROM
 
 
- void ICACHE_RAM_ATTR ISR(){
+ICACHE_RAM_ATTR void ISR(){
   enable_sortie=1;
 }
 
@@ -77,15 +77,27 @@ void setup()
 
 void loop() {
   clientMQTT.loop();
-  Serial.println (rMessage);
+  /*count++;
+  /*if(count=134){
+    Serial.println (rMessage);
+  Serial.print ("Alarm");
   Serial.println (alarm);
-  //if(strcmp(rMessage,"false"))alarm=0;
+  Serial.print("Condition");
+  Serial.println(rMessage=="false");
+  count=0;
+  }*/
+  if(strcmp (rMessage,"false")==0){
+    alarm=0;
+    Serial.println("Desactivé");
+    memset(rMessage, 0, sizeof(rMessage));
+  }
    if (!clientMQTT.connected()) {
     Serial.println("Disconnected...");
     reconnect();
     }
       if(enable_sortie){ 
-        if(nb_personnes>0){
+        if (alarm==0){
+          if(nb_personnes>0){
           opening_door(sortie);
           gestion_personne(sortie);
           Serial.print (" S: nombre de personnes: ");
@@ -94,8 +106,9 @@ void loop() {
           else{
           Serial.print ("Maison deja vide");
           }
-          enable_sortie=0;
-        
+          
+          }
+        enable_sortie=0;
       }
     if ( ! mfrc522.PICC_IsNewCardPresent()) return;
     //Nvlle carte
@@ -157,9 +170,12 @@ void gestion_personne(Sens sens){
 }
 
 void opening_door(Sens sens){
+  Serial.println("Ouverture");
   porte.write(180);
-  /*if (sens==entree) melody(1);
-  else*/ delay(1000);
+  if (sens==entree) melody(1);
+  else delay(1000);
+  delay(1000);
+  Serial.println("Ouvert2");
   porte.write(0);
 }
 
@@ -218,7 +234,7 @@ void melody(uint8_t mel){
   }
   
 void reconnect() {
-  //clientMQTT.setServer("192.168.0.14", 1883);
+  //clientMQTT.setServer("192.168.0.10", 1883);
   clientMQTT.setServer("192.168.5.147", 1883);
   Serial.println("Trying to connect to MQTT broker");
   while (!clientMQTT.connected()) {
@@ -226,7 +242,7 @@ void reconnect() {
     else delay(1000);
     }
     Serial.println("Connected to Broker...");
-    clientMQTT.subscribe("acces"); // Subscribe to a topic
+    clientMQTT.subscribe("accessControl"); // Subscribe to a topic
     clientMQTT.setCallback(MQTTcallback); // Set the callback function
     
 }
@@ -235,7 +251,6 @@ void MQTTcallback(char* topic, byte* payload, unsigned int length) {
   memset(rMessage, 0, sizeof(rMessage));
   strncpy(rMessage, (char*)payload, length);
   Serial.println(length);
-//  rMessage = (char*)(payload);
   Serial.print("Received message : ");
   Serial.println(rMessage);
  
